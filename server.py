@@ -32,14 +32,28 @@ class MyWebServer(socketserver.BaseRequestHandler):
     def handle(self):
         request = self.request
         #TCP protocol server
-        requestData = request.recv(4096)
+        rawDataReceived = request.recv(4096)
+        dataDecoded = rawDataReceived.decode("utf-8")
 
-        print("Got a request of: \n%s\n" % requestData.decode('utf-8').strip())
+        print("******\nGot a request of:\n%s\n******" % dataDecoded)
+
+        #request.sendall(bytearray("OK",'utf-8'))
 
         # TO DO: HANDLE HTTP REQUEST
+        #  [ ] Return a status code of "405 Method Not Allowed"
+        #  for any method you cannot handle (POST/PUT/DELETE)
+        response_proto = 'HTTP/1.1' 
+        response_status = self.checkHTTPRequest(dataDecoded)
+        response_status_text = 'Method Not Allowed'
+        dataSent = ('%s %s %s' % (response_proto, response_status, response_status_text))
 
-
-        self.request.sendall(bytearray("OK",'utf-8'))
+        request.sendall(dataSent.encode('utf-8'))
+    
+    def checkHTTPRequest(self, data):    
+        if ("GET" in data):
+            return '200'
+        else:
+            return '405'
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
