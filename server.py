@@ -39,21 +39,20 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
         #request.sendall(bytearray("OK",'utf-8'))
 
-        # TO DO: HANDLE HTTP REQUEST
-        #  [ ] Return a status code of "405 Method Not Allowed"
-        #  for any method you cannot handle (POST/PUT/DELETE)
-        response_proto = 'HTTP/1.1' 
-        response_status = self.checkHTTPRequest(dataDecoded)
-        response_status_text = 'Method Not Allowed'
-        dataSent = ('%s %s %s' % (response_proto, response_status, response_status_text))
 
-        request.sendall(dataSent.encode('utf-8'))
-    
-    def checkHTTPRequest(self, data):    
-        if ("GET" in data):
-            return '200'
+        # TO DO: FIGURE OUT RESPONSE FORMAT TO CLIENT
+        
+        # HTTP Request Response 
+        if (self.checkHTTPRequest(dataDecoded)) == True:
+            request.sendall(("HTTP/1.1 200 OK\n").encode('utf-8'))
         else:
-            return '405'
+            request.sendall(("HTTP/1.1 405 Method Not Allowed\n").encode('utf-8'))
+    
+    def checkHTTPRequest(self, data):
+        if ("GET" in data):
+            return True
+        else:
+            return False
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
