@@ -1,5 +1,6 @@
 #  coding: utf-8
 import socketserver
+import os
 
 # Copyright 2013 Abram Hindle, Eddie Antonio Santos
 #
@@ -44,28 +45,47 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
         # HTTP Request Type Response
         # GET Request only
-        self.checkHTTPRequest(request, method)
+        print("Checking HTTP Method")
+        if (self.checkHTTPRequest(request, method)) == False:
+            return
 
         # HTTP Request Header Response
         # Check if header format is invalid
-        self.checkHTTPHeader(request, httpRequest)
+        print("Checking HTTP Header")
+        if (self.checkHTTPHeader(request, httpRequest)) == False:
+            return
 
-        # TO DO
-        # Check file path
-
+        # Check file path recieved, serve only ./www/ or ./www/deeper/
+        self.validURL(request, url)
 
     def checkHTTPRequest(self, request, method):
         if ("GET" in method):
             response = "HTTP/1.1 200 OK\n"
             request.sendall(bytearray(response,"utf-8"))
+            return True
         else:
             response = "HTTP/1.1 405 Method Not Allowed\n"
             request.sendall(bytearray(response,"utf-8"))
+            return False
 
     def checkHTTPHeader(self, request, httpRequest):
-        if (httpRequest.split(" ") != 3):
+        if (len(httpRequest.split(" ")) != 3):
            response = "HTTP/1.1 400 Bad Request\n"
            request.sendall(bytearray(response,"utf-8"))
+           return False
+        return True
+
+    def validURL(self, request, url):
+        local_path = "./www" + url
+        print(local_path)
+        if os.path.isdir(local_path) or os.path.isfile(local_path):
+            #print(local_path[:-1])
+            return True
+        else:
+            response = "HTTP/1.1 404 Not Found\n"
+            request.sendall(bytearray(response,"utf-8"))
+            return False
+
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
