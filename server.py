@@ -41,32 +41,50 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
         print("******\nGot a request of:\n%s\n******" % dataDecoded)
 
-        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages
-
         # HTTP Request Type Response
-        # GET Request only
+        # HTTP GET Request only
         print("Checking HTTP Method")
-        if (self.checkHTTPRequest(request, method)) == False:
+        if not (self.checkHTTPRequest(request, method)):
             return
 
         # HTTP Request Header Response
         # Check if header format is invalid
         print("Checking HTTP Header")
-        if (self.checkHTTPHeader(request, httpRequest)) == False:
+        if not (self.checkHTTPHeader(request, httpRequest)):
             return
 
-        # Check file path recieved, serve only ./www/ or ./www/deeper/
-        self.validURL(request, url)
+        # HTTP URL Response
+        # Check the url recieved, serve only ./www/ or ./www/deeper/
+        print("Checking for valid URL")
+        if not (self.validURL(request, url)):
+            return
+
+        # HTTP URL Response
+        # Check for HTTP 301 if / is missing at the end of ./www or ./www/deeper
+        print("Checking for HTTP 301")
+        url = self.redirectURL(request, url)
+
+        print("Checking if URL is the root")
+        url_to_path = self.pathURL(url)
+        print(url_to_path)
+
+        # TO DO READ FILE AND GET CONTENT HEADER INFORMATION
+
+
+
+
+
+
+        # At the end if there no issues
+        response = "%s 200 OK\n" % protocol
+        request.sendall(bytearray(response,"utf-8"))
 
     def checkHTTPRequest(self, request, method):
-        if ("GET" in method):
-            response = "HTTP/1.1 200 OK\n"
-            request.sendall(bytearray(response,"utf-8"))
-            return True
-        else:
+        if not ("GET" in method):
             response = "HTTP/1.1 405 Method Not Allowed\n"
             request.sendall(bytearray(response,"utf-8"))
             return False
+        return True
 
     def checkHTTPHeader(self, request, httpRequest):
         if (len(httpRequest.split(" ")) != 3):
@@ -77,14 +95,29 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
     def validURL(self, request, url):
         local_path = "./www" + url
-        print(local_path)
         if os.path.isdir(local_path) or os.path.isfile(local_path):
-            #print(local_path[:-1])
             return True
         else:
             response = "HTTP/1.1 404 Not Found\n"
             request.sendall(bytearray(response,"utf-8"))
             return False
+
+    def redirectURL(self, request, url):
+        if not ("/" in url[-1]):
+            response = "HTTP/1.1 301 Moved Permanently\n"
+            request.sendall(bytearray(response,"utf-8"))
+            return url + '/'
+        return url
+
+    def pathURL(self, url):
+        local_path = "./www" + url
+        if os.path.isfile(local_path):
+            return local_path
+        else:
+            # Has to be a directory if it not a file
+            assert(os.path.isdir(local_path))
+            dirURL = os.path.join(local_path, 'index.html')
+            return dirURL
 
 
 if __name__ == "__main__":
