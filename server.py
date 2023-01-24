@@ -34,25 +34,38 @@ class MyWebServer(socketserver.BaseRequestHandler):
         #TCP protocol server
         rawDataReceived = request.recv(4096)
         dataDecoded = rawDataReceived.decode("utf-8")
+        headers = dataDecoded.strip().split('\r\n')
+        httpRequest = headers[0]
+        method, url, protocol = httpRequest.split(" ")
 
         print("******\nGot a request of:\n%s\n******" % dataDecoded)
 
-        #request.sendall(bytearray("OK",'utf-8'))
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages
+
+        # HTTP Request Type Response
+        # GET Request only
+        self.checkHTTPRequest(request, method)
+
+        # HTTP Request Header Response
+        # Check if header format is invalid
+        self.checkHTTPHeader(request, httpRequest)
+
+        # TO DO
+        # Check file path
 
 
-        # TO DO: FIGURE OUT RESPONSE FORMAT TO CLIENT
-        
-        # HTTP Request Response 
-        if (self.checkHTTPRequest(dataDecoded)) == True:
-            request.sendall(("HTTP/1.1 200 OK\n").encode('utf-8'))
+    def checkHTTPRequest(self, request, method):
+        if ("GET" in method):
+            response = "HTTP/1.1 200 OK\n"
+            request.sendall(bytearray(response,"utf-8"))
         else:
-            request.sendall(("HTTP/1.1 405 Method Not Allowed\n").encode('utf-8'))
-    
-    def checkHTTPRequest(self, data):
-        if ("GET" in data):
-            return True
-        else:
-            return False
+            response = "HTTP/1.1 405 Method Not Allowed\n"
+            request.sendall(bytearray(response,"utf-8"))
+
+    def checkHTTPHeader(self, request, httpRequest):
+        if (httpRequest.split(" ") != 3):
+           response = "HTTP/1.1 400 Bad Request\n"
+           request.sendall(bytearray(response,"utf-8"))
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
