@@ -45,93 +45,66 @@ class MyWebServer(socketserver.BaseRequestHandler):
         if not (self.checkHTTPRequest(request, start_line)):
             return
 
-        method, url, protocol = start_line.split(" ")
+        method, request_target, version = start_line.split(" ")
+        local_path = "./www" + request_target
 
-        # HTTP URL Response
-        # Check the url recieved, serve only ./www/ or ./www/deeper/
-        print("Checking for valid URL")
-        if not (self.validURL(request, url)):
-            return
+        if os.path.isdir(local_path):
+            print(local_path[-1])
+            if local_path[-1] == "/":
+                local_path += "index.html"
+                response = self.checkFileExt(local_path)
+                print(response)
+                request.sendall(bytearray(response,"utf-8"))
+            elif local_path[-1] != "/":
+                base_url = "http://127.0.0.1:8080/www"
+                response = "HTTP/1.1 301 Moved Permanently Location: " + base_url + request_target + "/" + "\r\n\r\n"
+                request.sendall(bytearray(response,"utf-8"))
 
-        # HTTP URL Response
-        # Check for HTTP 301 if / is missing at the end of ./www or ./www/deeper
-        # TO DO
-        #print("Checking for HTTP 301")
-        #url = self.redirectURL(request, url)
+        elif os.path.isfile(local_path):
+            # Read file and get content
+            print("Checking file ext.")
+            response = self.checkFileExt(local_path)
+            request.sendall(bytearray(response,"utf-8"))
 
-        print("Checking if URL is the root")
-        url_to_path = self.pathURL(url)
 
-        # TO DO READ FILE AND GET CONTENT HEADER INFORMATION
-        print("Checking file ext.")
-        MIME_type = self.checkFileExt(url)
-        content_type = "Content-Type: {0}; charset=utf-8\r\n".format(MIME_type)
-        file = open(url_to_path, "r").read()
-
-        content = "\r\n" + file
-        content_length = "Content-Length: {0}\r\n".format(len(file))
-
-        # At the end if there no issues
-        status_line = "%s 200 OK\r\n" % protocol
-        response = status_line + content_type + content_length + content
-        request.sendall(bytearray(response,"utf-8"))
 
     def checkHTTPRequest(self, request, start_line):
         # Start-line must contain: HTTP Method, Request Target, HTTP Version
         if (len(start_line.split()) != 3):
-            response = "HTTP/1.1 400 Bad Request\n"
+            response = "HTTP/1.1 400 Bad Request\r\n"
             request.sendall(bytearray(response,"utf-8"))
             return False
         # No POST/PUT/DELETE
         methodHTTP = start_line.split()[0]
         if not ("GET" in methodHTTP):
-            response = "HTTP/1.1 405 Method Not Allowed\n"
+            response = "HTTP/1.1 405 Method Not Allowed\r\n"
             request.sendall(bytearray(response,"utf-8"))
             return False
         # Only HTTP Version 1.1
         versionHTTP = start_line.split()[2]
         if not ("HTTP/1.1" in versionHTTP):
-            response = "HTTP/1.1 400 Bad Request\n"
+            response = "HTTP/1.1 400 Bad Request\r\n"
             request.sendall(bytearray(response,"utf-8"))
             return False
         return True
 
-    def validURL(self, request, url):
-        local_path = "./www" + url
-        if os.path.isdir(local_path) or os.path.isfile(local_path):
-            return True
-        else:
-            response = "HTTP/1.1 404 Not Found\n"
-            request.sendall(bytearray(response,"utf-8"))
-            return False
-
-    def redirectURL(self, request, url):
-        if not ("/" in url[-1]):
-            response = "HTTP/1.1 301 Moved Permanently\n"
-            request.sendall(bytearray(response,"utf-8"))
-            return url + '/'
-        return url
-
-    def pathURL(self, url):
-        local_path = "./www" + url
-        if os.path.isfile(local_path):
-            return local_path
-        else:
-            # Has to be a directory if it not a file
-            assert(os.path.isdir(local_path))
-            dirURL = os.path.join(local_path, 'index.html')
-            return dirURL
-
     def checkFileExt(self,url):
+        file = open(url, "r")
+        content = file.read().replace("\n", "")
+
         # Serve only HTML and CSS
         filename, file_extension = os.path.splitext(url)
-        print(file_extension)
-        MIME_type = "text"
         if file_extension == ".html":
             MIME_type = "text/html"
         elif file_extension == ".css":
             MIME_type = "text/css"
-        return MIME_type
+        else:
+            response =  "HTTP/1.1 404 Not Found\n"
+
+        response = "HTTP/1.1 200 OK\r\nContent-Type:" + MIME_type + "\r\n\r\n" + content +"\r\n"
+        file.close()
+        return response
+
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
