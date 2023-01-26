@@ -32,26 +32,20 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
     def handle(self):
         request = self.request
-        #TCP protocol server
-        rawDataReceived = request.recv(4096)
-        dataDecoded = rawDataReceived.decode("utf-8")
-        headers = dataDecoded.strip().split('\r\n')
-        httpRequest = headers[0]
-        method, url, protocol = httpRequest.split(" ")
+        rawDataReceived = request.recv(4096)            # TCP protocol server
+        dataDecoded = rawDataReceived.decode("utf-8")   # Convert bytes to string
+        headers = dataDecoded.strip().split('\r\n')     # Split up HTTP Request headers
+        start_line = headers[0]                         # Start-line header
 
-        print("******\nGot a request of:\n%s\n******" % dataDecoded)
+        print("Got a request of:\n%s\n" % dataDecoded)
 
-        # HTTP Request Type Response
-        # HTTP GET Request only
-        print("Checking HTTP Method")
-        if not (self.checkHTTPRequest(request, method)):
-            return
-
-        # HTTP Request Header Response
+        # HTTP Request Response
         # Check if header format is invalid
         print("Checking HTTP Header")
-        if not (self.checkHTTPHeader(request, httpRequest)):
+        if not (self.checkHTTPRequest(request, start_line)):
             return
+
+        method, url, protocol = start_line.split(" ")
 
         # HTTP URL Response
         # Check the url recieved, serve only ./www/ or ./www/deeper/
@@ -82,18 +76,24 @@ class MyWebServer(socketserver.BaseRequestHandler):
         response = status_line + content_type + content_length + content
         request.sendall(bytearray(response,"utf-8"))
 
-    def checkHTTPRequest(self, request, method):
-        if not ("GET" in method):
+    def checkHTTPRequest(self, request, start_line):
+        # Start-line must contain: HTTP Method, Request Target, HTTP Version
+        if (len(start_line.split()) != 3):
+            response = "HTTP/1.1 400 Bad Request\n"
+            request.sendall(bytearray(response,"utf-8"))
+            return False
+        # No POST/PUT/DELETE
+        methodHTTP = start_line.split()[0]
+        if not ("GET" in methodHTTP):
             response = "HTTP/1.1 405 Method Not Allowed\n"
             request.sendall(bytearray(response,"utf-8"))
             return False
-        return True
-
-    def checkHTTPHeader(self, request, httpRequest):
-        if (len(httpRequest.split(" ")) != 3):
-           response = "HTTP/1.1 400 Bad Request\n"
-           request.sendall(bytearray(response,"utf-8"))
-           return False
+        # Only HTTP Version 1.1
+        versionHTTP = start_line.split()[2]
+        if not ("HTTP/1.1" in versionHTTP):
+            response = "HTTP/1.1 400 Bad Request\n"
+            request.sendall(bytearray(response,"utf-8"))
+            return False
         return True
 
     def validURL(self, request, url):
