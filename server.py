@@ -49,15 +49,12 @@ class MyWebServer(socketserver.BaseRequestHandler):
         local_path = "./www" + request_target
 
         if os.path.isdir(local_path):
-            print(local_path[-1])
             if local_path[-1] == "/":
                 local_path += "index.html"
                 response = self.checkFileExt(local_path)
-                print(response)
                 request.sendall(bytearray(response,"utf-8"))
             elif local_path[-1] != "/":
-                base_url = "http://127.0.0.1:8080/www"
-                response = "HTTP/1.1 301 Moved Permanently Location: " + base_url + request_target + "/" + "\r\n\r\n"
+                response = "HTTP/1.1 301 Moved Permanently\r\nLocation: " + request_target + "/\r\n\n"
                 request.sendall(bytearray(response,"utf-8"))
 
         elif os.path.isfile(local_path):
@@ -86,6 +83,12 @@ class MyWebServer(socketserver.BaseRequestHandler):
             response = "HTTP/1.1 400 Bad Request\r\n"
             request.sendall(bytearray(response,"utf-8"))
             return False
+        request_target = start_line.split()[1]
+        if ("../" in request_target):
+            response = "HTTP/1.1 404 Bad Request\r\n"
+            request.sendall(bytearray(response,"utf-8"))
+            return False
+        return True
         return True
 
     def checkFileExt(self,url):
