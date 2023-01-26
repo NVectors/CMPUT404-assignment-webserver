@@ -61,22 +61,25 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
         # HTTP URL Response
         # Check for HTTP 301 if / is missing at the end of ./www or ./www/deeper
-        print("Checking for HTTP 301")
-        url = self.redirectURL(request, url)
+        # TO DO
+        #print("Checking for HTTP 301")
+        #url = self.redirectURL(request, url)
 
         print("Checking if URL is the root")
         url_to_path = self.pathURL(url)
-        print(url_to_path)
 
         # TO DO READ FILE AND GET CONTENT HEADER INFORMATION
+        print("Checking file ext.")
+        MIME_type = self.checkFileExt(url)
+        content_type = "Content-Type: {0}; charset=utf-8\r\n".format(MIME_type)
+        file = open(url_to_path, "r").read()
 
-
-
-
-
+        content = "\r\n" + file
+        content_length = "Content-Length: {0}\r\n".format(len(file))
 
         # At the end if there no issues
-        response = "%s 200 OK\n" % protocol
+        status_line = "%s 200 OK\r\n" % protocol
+        response = status_line + content_type + content_length + content
         request.sendall(bytearray(response,"utf-8"))
 
     def checkHTTPRequest(self, request, method):
@@ -119,6 +122,16 @@ class MyWebServer(socketserver.BaseRequestHandler):
             dirURL = os.path.join(local_path, 'index.html')
             return dirURL
 
+    def checkFileExt(self,url):
+        # Serve only HTML and CSS
+        filename, file_extension = os.path.splitext(url)
+        print(file_extension)
+        MIME_type = "text"
+        if file_extension == ".html":
+            MIME_type = "text/html"
+        elif file_extension == ".css":
+            MIME_type = "text/css"
+        return MIME_type
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
