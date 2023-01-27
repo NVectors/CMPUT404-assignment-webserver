@@ -54,7 +54,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 response = self.checkFileExt(local_path)
                 request.sendall(bytearray(response,"utf-8"))
             elif local_path[-1] != "/":
-                response = "HTTP/1.1 301 Moved Permanently\r\nLocation: " + request_target + "/\r\n\n"
+                response = "HTTP/1.1 301 Moved Permanently\r\nLocation: " + request_target + "/\r\n\r\n"
                 request.sendall(bytearray(response,"utf-8"))
 
         elif os.path.isfile(local_path):
