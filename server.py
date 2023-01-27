@@ -2,6 +2,7 @@
 import socketserver
 import os
 
+# 
 # Copyright 2013 Abram Hindle, Eddie Antonio Santos
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,11 +38,8 @@ class MyWebServer(socketserver.BaseRequestHandler):
         headers = dataDecoded.strip().split('\r\n')     # Split up HTTP Request headers
         start_line = headers[0]                         # Start-line header
 
-        print("Got a request of:\n%s\n" % dataDecoded)
-
         # HTTP Request Response
         # Check if header format is invalid
-        print("Checking HTTP Header")
         if not (self.checkHTTPRequest(request, start_line)):
             return
 
@@ -49,8 +47,11 @@ class MyWebServer(socketserver.BaseRequestHandler):
         local_path = "./www" + request_target
 
         if os.path.isdir(local_path):
+            print()
+            # Check for path ending
             if local_path[-1] == "/":
                 local_path += "index.html"
+                # Read file and get content
                 response = self.checkFileExt(local_path)
                 request.sendall(bytearray(response,"utf-8"))
             elif local_path[-1] != "/":
@@ -59,10 +60,11 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
         elif os.path.isfile(local_path):
             # Read file and get content
-            print("Checking file ext.")
             response = self.checkFileExt(local_path)
             request.sendall(bytearray(response,"utf-8"))
-
+        else:
+            response = "HTTP/1.1 404 Not Found\r\n"
+            request.sendall(bytearray(response, "utf-8"))
 
 
     def checkHTTPRequest(self, request, start_line):
@@ -85,10 +87,9 @@ class MyWebServer(socketserver.BaseRequestHandler):
             return False
         request_target = start_line.split()[1]
         if ("../" in request_target):
-            response = "HTTP/1.1 404 Bad Request\r\n"
+            response = "HTTP/1.1 404 Not Found\r\n"
             request.sendall(bytearray(response,"utf-8"))
             return False
-        return True
         return True
 
     def checkFileExt(self,url):
@@ -99,12 +100,12 @@ class MyWebServer(socketserver.BaseRequestHandler):
         filename, file_extension = os.path.splitext(url)
         if file_extension == ".html":
             MIME_type = "text/html"
+            response = "HTTP/1.1 200 OK\r\nContent-Type:" + MIME_type + "\r\n\r\n" + content +"\r\n"
         elif file_extension == ".css":
             MIME_type = "text/css"
+            response = "HTTP/1.1 200 OK\r\nContent-Type:" + MIME_type + "\r\n\r\n" + content +"\r\n"
         else:
-            response =  "HTTP/1.1 404 Not Found\n"
-
-        response = "HTTP/1.1 200 OK\r\nContent-Type:" + MIME_type + "\r\n\r\n" + content +"\r\n"
+            response =  "HTTP/1.1 404 Not Found\r\n"
         file.close()
         return response
 
