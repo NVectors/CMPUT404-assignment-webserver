@@ -2,8 +2,7 @@
 import socketserver
 import os
 
-# 2023 Victor Nguyen
-# Copyright 2013 Abram Hindle, Eddie Antonio Santos
+# Copyright 2023 Victor Nguyen, Abram Hindle, Eddie Antonio Santos
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -85,6 +84,8 @@ class MyWebServer(socketserver.BaseRequestHandler):
             response = "HTTP/1.1 400 Bad Request\r\n"
             request.sendall(bytearray(response,"utf-8"))
             return False
+
+        # Can't access root path
         request_target = start_line.split()[1]
         if ("../" in request_target):
             response = "HTTP/1.1 404 Not Found\r\n"
@@ -100,10 +101,18 @@ class MyWebServer(socketserver.BaseRequestHandler):
         filename, file_extension = os.path.splitext(url)
         if file_extension == ".html":
             MIME_type = "text/html"
-            response = "HTTP/1.1 200 OK\r\nContent-Type:" + MIME_type + "\r\n\r\n" + content +"\r\n"
+            response = "HTTP/1.1 200 OK\r\n"
+            response += "Content-Length: %s\r\n" % len(content)
+            response += "Content-Type:" + MIME_type + "; charset=utf-8\r\n\r\n"
+            response += content +"\r\n"
+            response += 'Connection: close\r\n\r\n'
         elif file_extension == ".css":
             MIME_type = "text/css"
-            response = "HTTP/1.1 200 OK\r\nContent-Type:" + MIME_type + "\r\n\r\n" + content +"\r\n"
+            response = "HTTP/1.1 200 OK\r\n"
+            response += "Content-Length: %s\r\n" % len(content)
+            response += "Content-Type:" + MIME_type + "; charset=utf-8\r\n\r\n"
+            response += content +"\r\n"
+            response += 'Connection: close\r\n\r\n'
         else:
             response =  "HTTP/1.1 404 Not Found\r\n"
         file.close()
